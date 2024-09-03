@@ -1,2 +1,239 @@
-Hello
-World
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>피트니스 트래커</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #4cae4c;
+        }
+
+        .date-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .today-button {
+            flex-shrink: 0;
+            padding: 5px 10px;
+            background-color: #0275d8;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            width: 50px; /* 가로 길이 조정 */
+        }
+
+        .today-button:hover {
+            background-color: #025aa5;
+        }
+
+        .results {
+            margin-top: 20px;
+        }
+
+        .results h2 {
+            color: #5cb85c;
+        }
+
+        .result-item {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .result-item .details {
+            flex: 1;
+        }
+
+        .result-item .buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .result-item button {
+            width: 60px;
+            background-color: #d9534f;
+            color: white;
+            border: none;
+            padding: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .result-item button.edit {
+            background-color: #0275d8;
+        }
+
+        .result-item button:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>피트니스 트래커</h1>
+
+        <div class="date-container">
+            <label for="date">날짜:</label>
+            <input type="date" id="date" />
+            <button class="today-button" onclick="setToday()">오늘</button>
+        </div>
+
+        <label for="exercise">운동 종류:</label>
+        <input type="text" id="exercise" placeholder="예: 달리기" />
+
+        <label for="duration">운동 시간 (분):</label>
+        <input type="number" id="duration" placeholder="예: 30" />
+
+        <button onclick="addActivity()">활동 추가</button>
+
+        <div class="results" id="results">
+            <h2>활동 로그</h2>
+            <div id="activity-log"></div>
+        </div>
+    </div>
+
+    <script>
+        let activities = JSON.parse(localStorage.getItem('activities')) || [];
+        let editingIndex = null;
+
+        function setToday() {
+            const today = new Date().toISOString().substr(0, 10);
+            document.getElementById('date').value = today;
+        }
+
+        function addActivity() {
+            const date = document.getElementById('date').value;
+            const exercise = document.getElementById('exercise').value;
+            const durationMinutes = document.getElementById('duration').value;
+
+            if (date && exercise && durationMinutes) {
+                const duration = formatDuration(durationMinutes);
+
+                const activity = {
+                    date,
+                    exercise,
+                    duration
+                };
+
+                if (editingIndex !== null) {
+                    activities[editingIndex] = activity;
+                    editingIndex = null;
+                } else {
+                    activities.push(activity);
+                }
+
+                localStorage.setItem('activities', JSON.stringify(activities));
+                renderActivities();
+                clearInputs();
+            } else {
+                alert('모든 항목을 입력해주세요');
+            }
+        }
+
+        function formatDuration(minutes) {
+            const hours = Math.floor(minutes / 60);
+            const remainingMinutes = minutes % 60;
+            if (hours > 0) {
+                return `${hours}시간 ${remainingMinutes > 0 ? remainingMinutes + '분' : ''}`;
+            } else {
+                return `${remainingMinutes}분`;
+            }
+        }
+
+        function renderActivities() {
+            const logContainer = document.getElementById('activity-log');
+            logContainer.innerHTML = '';
+
+            activities.forEach((activity, index) => {
+                const activityElement = document.createElement('div');
+                activityElement.classList.add('result-item');
+                activityElement.innerHTML = `
+                    <div class="details">
+                        <strong>날짜:</strong> ${activity.date} <br />
+                        <strong>운동 종류:</strong> ${activity.exercise} <br />
+                        <strong>운동 시간:</strong> ${activity.duration}
+                    </div>
+                    <div class="buttons">
+                        <button class="edit" onclick="editActivity(${index})">수정</button>
+                        <button onclick="deleteActivity(${index})">삭제</button>
+                    </div>
+                `;
+                logContainer.appendChild(activityElement);
+            });
+        }
+
+        function editActivity(index) {
+            const activity = activities[index];
+            document.getElementById('date').value = activity.date;
+            document.getElementById('exercise').value = activity.exercise;
+            document.getElementById('duration').value = parseInt(activity.duration);
+            editingIndex = index;
+        }
+
+        function deleteActivity(index) {
+            activities.splice(index, 1);
+            localStorage.setItem('activities', JSON.stringify(activities));
+            renderActivities();
+        }
+
+        function clearInputs() {
+            document.getElementById('date').value = '';
+            document.getElementById('exercise').value = '';
+            document.getElementById('duration').value = '';
+        }
+
+        // 페이지 로드 시 저장된 활동 목록을 렌더링
+        document.addEventListener('DOMContentLoaded', renderActivities);
+    </script>
+
+</body>
+</html>
